@@ -11,9 +11,15 @@
 - `S5_performance_power_spec.md`：性能与功耗规格（指标、测量、优化）
 - `S6_integration_delivery_spec.md`：集成与交付规格（寄存器、软件、文档、发布）
 
+## 模块级详细规格
+- 目录：`modules/`
+- 文档覆盖：Top/CSR/Scheduler/DMA-AXI/Buffer/Compute Core
+- 每个模块统一包含：Feature、Interface、Block Diagram、Architecture Diagram、Function
+
 ## 推荐使用方式
 1. 方案评审先看 `S0` 和 `S1`
 2. 设计开发执行 `S2` 和 `S3`
-3. 验证签核遵循 `S4`
-4. 性能/功耗收敛参考 `S5`
-5. 对外交付按 `S6` 检查
+3. 模块实现前先对齐 `modules/` 对应文档
+4. 验证签核遵循 `S4`
+5. 性能/功耗收敛参考 `S5`
+6. 对外交付按 `S6` 检查
