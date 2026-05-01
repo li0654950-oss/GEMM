@@ -8,7 +8,7 @@ BUILD_DIR = build
 # Default simulator (override with SIM=verilator|iverilog|vcs|questa)
 SIM ?= iverilog
 
-# Default target (override with TARGET=pe_cell|systolic_core)
+# Default target (override with TARGET=pe_cell|systolic_core|buffer_bank)
 TARGET ?= pe_cell
 
 # Sources per target
@@ -20,8 +20,12 @@ else ifeq ($(TARGET),systolic_core)
   RTL_SRC  = $(RTL_DIR)/pe_cell.sv $(RTL_DIR)/array_io_adapter.sv $(RTL_DIR)/systolic_core.sv
   TB_SRC   = $(TB_DIR)/tb_systolic_core.sv
   TOP      = tb_systolic_core
+else ifeq ($(TARGET),buffer_bank)
+  RTL_SRC  = $(RTL_DIR)/buffer_bank.sv
+  TB_SRC   = $(TB_DIR)/tb_buffer_bank.sv
+  TOP      = tb_buffer_bank
 else
-  $(error Unknown TARGET=$(TARGET). Supported: pe_cell, systolic_core)
+  $(error Unknown TARGET=$(TARGET). Supported: pe_cell, systolic_core, buffer_bank)
 endif
 
 # Target
@@ -52,7 +56,7 @@ else ifeq ($(SIM),verilator)
 # Verilator 5.x requires --timing for event controls and delay statements
 # Uses sim_main.cpp as C++ wrapper
 
-VERILATOR_FLAGS = --timing --trace -Wno-INITIALDLY -Wno-WIDTH -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-UNDRIVEN -Wno-TIMESCALEMOD -Wno-DECLFILENAME -Wno-UNOPTFLAT --cc --exe sim_main.cpp -CFLAGS "-DVM_PREFIX=V$(TOP)" --top-module $(TOP)
+VERILATOR_FLAGS = --timing --trace -Wno-INITIALDLY -Wno-WIDTH -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-UNDRIVEN -Wno-TIMESCALEMOD -Wno-DECLFILENAME -Wno-UNOPTFLAT --cc --exe sim_main.cpp -CFLAGS "-DVM_PREFIX=V$(TOP)" -DSIMULATION --top-module $(TOP)
 
 compile:
 	@mkdir -p $(BUILD_DIR)/obj_dir
