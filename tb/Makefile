@@ -36,8 +36,20 @@ else ifeq ($(TARGET),d_storer)
   RTL_SRC  = $(RTL_DIR)/buffer_bank.sv $(RTL_DIR)/d_storer.sv
   TB_SRC   = $(TB_DIR)/tb_d_storer.sv
   TOP      = tb_d_storer
+else ifeq ($(TARGET),postproc)
+  RTL_SRC  = $(RTL_DIR)/fp_round_sat.sv $(RTL_DIR)/fp_add_c.sv $(RTL_DIR)/postproc.sv
+  TB_SRC   = $(TB_DIR)/tb_postproc.sv
+  TOP      = tb_postproc
+else ifeq ($(TARGET),fp_round_sat)
+  RTL_SRC  = $(RTL_DIR)/fp_round_sat.sv
+  TB_SRC   = $(TB_DIR)/tb_fp_round_sat.sv
+  TOP      = tb_fp_round_sat
+else ifeq ($(TARGET),fp_add_c)
+  RTL_SRC  = $(RTL_DIR)/fp_add_c.sv
+  TB_SRC   = $(TB_DIR)/tb_fp_add_c.sv
+  TOP      = tb_fp_add_c
 else
-  $(error Unknown TARGET=$(TARGET). Supported: pe_cell, systolic_core, buffer_bank, a_loader, b_loader, d_storer)
+  $(error Unknown TARGET=$(TARGET). Supported: pe_cell, systolic_core, buffer_bank, a_loader, b_loader, d_storer, postproc, fp_round_sat, fp_add_c)
 endif
 
 # Target
@@ -134,10 +146,13 @@ help:
 	@echo ""
 	@echo "Simulators: iverilog (default), verilator, vcs, questa"
 	@echo "Targets:    pe_cell (default), systolic_core"
+	@echo "Targets:    buffer_bank, a_loader, b_loader, d_storer"
+	@echo "Targets:    postproc, fp_round_sat, fp_add_c"
 	@echo "Targets:    compile, run, clean"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make SIM=iverilog TARGET=pe_cell run"
 	@echo "  make SIM=verilator TARGET=systolic_core run"
+	@echo "  make SIM=verilator TARGET=postproc run"
 	@echo "  make SIM=vcs TARGET=systolic_core run"
 	@echo "  make clean"

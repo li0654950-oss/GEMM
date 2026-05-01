@@ -170,7 +170,11 @@
 - `a_loader` — 完成，6/6 Verilator tests pass（row-major DMA→buffer reorder）
 - `b_loader` — 完成，6/6 Verilator tests pass（column-major DMA→buffer reorder）
 - `d_storer` — 完成，4/4 Verilator tests pass（postproc→buffer row-major writeback）
-- **M1 计算核心子系统 + On-chip Buffer 子系统 全部完成**
+- **`postproc` + `fp_add_c` + `fp_round_sat`** — 完成，12/12 Verilator tests pass
+  - `fp_round_sat`: FP32→FP16 转换，4 种 round mode，饱和/Inf/NaN/DENORM 处理
+  - `fp_add_c`: FP32 acc + FP16 C 融合或旁路，简化行为级加法
+  - `postproc`: 3-stage 流水线（align→add_c→round_sat），valid/ready 反压，sticky 异常计数器
+- **M1 计算核心子系统 + On-chip Buffer 子系统 + Postprocess 子系统 全部完成**
 - 下一步按 `spec/modules.md` 推进 M2 模块（tile_scheduler, postprocess_numeric, top_system_control, dma_axi_access）
 
 **必须遵守的约束**:
