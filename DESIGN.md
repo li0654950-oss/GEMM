@@ -166,8 +166,12 @@
   - 包含错误码输出（err_code[2:0]）
 - `array_io_adapter` — 完成，集成验证通过（skew 延迟、valid 传播）
 - `acc_ctrl` — 独立模块 RTL 完成，功能等效集成于 `systolic_core` FSM
-- **M1 计算核心子系统（systolic_compute_core_spec 规划内容）全部完成**
-- 下一步按 `spec/modules.md` 推进 M1 剩余模块（buffer_bank, loader, addr_gen, axi_master）
+- `buffer_bank` — 完成，12/12 Verilator tests pass（ping-pong、bank 冲突、byte-masked write）
+- `a_loader` — 完成，6/6 Verilator tests pass（row-major DMA→buffer reorder）
+- `b_loader` — 完成，6/6 Verilator tests pass（column-major DMA→buffer reorder）
+- `d_storer` — 完成，4/4 Verilator tests pass（postproc→buffer row-major writeback）
+- **M1 计算核心子系统 + On-chip Buffer 子系统 全部完成**
+- 下一步按 `spec/modules.md` 推进 M2 模块（tile_scheduler, postprocess_numeric, top_system_control, dma_axi_access）
 
 **必须遵守的约束**:
 1. 所有模块必须使用 `pe_cell` 中验证过的 `fp16_to_fp32` / `fp32_to_fp16` 转换函数（或统一放入 `gemm_pkg.sv` 包中）

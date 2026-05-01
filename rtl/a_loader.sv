@@ -5,6 +5,7 @@
 // Description:
 //   Receives DMA read data stream and writes A tile to buffer_bank
 //   in row-major order to match systolic_core row injection.
+//   Handles boundary tile masking.
 //
 // Spec Reference: spec/onchip_buffer_reorder_spec.md Section 4.3
 //------------------------------------------------------------------------------
@@ -25,7 +26,7 @@ module a_loader #(
 
     // DMA interface --------------------------------------------------------
     input  wire              dma_valid,
-    output reg               dma_ready,
+    output wire              dma_ready,
     input  wire [AXI_DATA_W-1:0]        dma_data,
     input  wire              dma_last,
 
@@ -50,69 +51,96 @@ module a_loader #(
     output reg               load_err
 );
 
-    localparam int BEAT_BYTES = AXI_DATA_W / 8;
-    localparam int ELEM_BYTES = ELEM_W / 8;
-
-    // Counters
-    reg [15:0] row_cnt;
-    reg [15:0] col_cnt;
-    reg [31:0] elem_byte_addr;
-
-    // Internal buffer for a beat of elements
-    reg [AXI_DATA_W-1:0]   beat_buffer;
-    reg                      beat_valid;
-
-    // Address mapping helpers
-    wire [$clog2(BUF_BANKS)-1:0] bank_calc;
-    wire [$clog2(BUF_DEPTH)-1:0] addr_calc;
-    wire [31:0]                  beat_idx;
-
-    // Row-major: elem_byte_addr = base_addr + row * stride + col * ELEM_BYTES
-    // beat_idx = elem_byte_addr / BEAT_BYTES
-    assign beat_idx  = elem_byte_addr / BEAT_BYTES;
-    assign bank_calc   = beat_idx % BUF_BANKS;
-    assign addr_calc   = beat_idx / BUF_BANKS;
-
-    // Mask generation: mask valid elements in beat
-    // Each element = ELEM_BYTES bytes
-    // Number of elements per beat = AXI_DATA_W / ELEM_W
+    localparam int BEAT_BYTES    = AXI_DATA_W / 8;
+    localparam int ELEM_BYTES    = ELEM_W / 8;
     localparam int ELEM_PER_BEAT = AXI_DATA_W / ELEM_W;
 
-    // For simplicity: assume DMA delivers elements in beat order
-    // and we write one beat per buffer write
-    // Boundary mask: if row >= tile_rows, mask all; if col + elem_idx >= tile_cols, mask partial
+    // Counters track the NEXT beat to be received
+    reg [15:0] row_cnt;
+    reg [15:0] col_cnt;
+
+    // Saved state for the beat currently in beat_buffer
+    reg [15:0] wr_row;
+    reg [15:0] wr_col;
+    reg [AXI_DATA_W-1:0] beat_buffer;
+    reg                    beat_valid;
+
+    // Address calculation for counters (next beat)
+    wire [31:0] next_byte_addr;
+    wire [31:0] next_beat_idx;
+    assign next_byte_addr = base_addr + row_cnt * tile_stride + col_cnt * ELEM_BYTES;
+    assign next_beat_idx  = next_byte_addr / BEAT_BYTES;
+
+    // Address calculation for saved beat (current beat in buffer)
+    wire [31:0] wr_byte_addr;
+    wire [31:0] wr_beat_idx;
+    wire [$clog2(BUF_BANKS)-1:0] wr_bank_calc;
+    wire [$clog2(BUF_DEPTH)-1:0] wr_addr_calc;
+    assign wr_byte_addr = base_addr + wr_row * tile_stride + wr_col * ELEM_BYTES;
+    assign wr_beat_idx  = wr_byte_addr / BEAT_BYTES;
+    assign wr_bank_calc = wr_beat_idx % BUF_BANKS;
+    assign wr_addr_calc = wr_beat_idx / BUF_BANKS;
+
+    // Mask generation for saved beat (combinational)
+    reg [AXI_DATA_W/8-1:0] mask_calc;
+    always_comb begin
+        mask_calc = '0;
+        for (int e = 0; e < ELEM_PER_BEAT; e++) begin
+            if ((wr_col + e) < tile_cols && wr_row < tile_rows) begin
+                mask_calc[e*ELEM_BYTES +: ELEM_BYTES] = {ELEM_BYTES{1'b1}};
+            end
+        end
+    end
+
+    // DMA ready: can accept if buffer empty or can drain in same cycle
+    assign dma_ready = !beat_valid || buf_wr_ready;
+
+    // Last beat flag: driven by dma_last from upstream DMA
+    // load_done asserted when dma_last beat is accepted
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            row_cnt        <= '0;
-            col_cnt        <= '0;
-            elem_byte_addr <= '0;
-            beat_buffer    <= '0;
-            beat_valid     <= 1'b0;
-            dma_ready      <= 1'b1;
-            buf_wr_valid   <= 1'b0;
-            buf_wr_sel     <= pp_sel;  // 0 or 1 for A_BUF
-            buf_wr_bank    <= '0;
-            buf_wr_addr    <= '0;
-            buf_wr_data    <= '0;
-            buf_wr_mask    <= '0;
-            load_done      <= 1'b0;
-            load_err       <= 1'b0;
+            row_cnt      <= '0;
+            col_cnt      <= '0;
+            wr_row       <= '0;
+            wr_col       <= '0;
+            beat_buffer  <= '0;
+            beat_valid   <= 1'b0;
+            buf_wr_valid <= 1'b0;
+            buf_wr_sel   <= '0;
+            buf_wr_bank  <= '0;
+            buf_wr_addr  <= '0;
+            buf_wr_data  <= '0;
+            buf_wr_mask  <= '0;
+            load_done    <= 1'b0;
+            load_err     <= 1'b0;
         end else begin
-            load_done <= 1'b0;  // pulse
+            load_done <= 1'b0;
             load_err  <= 1'b0;
+            buf_wr_valid <= 1'b0;
 
+            // Stage 2: Write beat_buffer to buffer_bank
+            if (beat_valid && buf_wr_ready) begin
+                buf_wr_valid <= 1'b1;
+                buf_wr_sel   <= pp_sel ? 3'd1 : 3'd0;
+                buf_wr_bank  <= wr_bank_calc;
+                buf_wr_addr  <= wr_addr_calc;
+                buf_wr_data  <= beat_buffer;
+                buf_wr_mask  <= mask_calc;
+                beat_valid   <= 1'b0;
+            end
+
+            // Stage 1: Accept DMA beat
             if (dma_valid && dma_ready) begin
-                // Accept DMA beat
                 beat_buffer <= dma_data;
                 beat_valid  <= 1'b1;
+                wr_row      <= row_cnt;
+                wr_col      <= col_cnt;
 
                 // Update counters for next beat
                 if (col_cnt + ELEM_PER_BEAT >= tile_cols) begin
-                    // End of row
                     col_cnt <= '0;
                     if (row_cnt + 1 >= tile_rows) begin
-                        // End of tile
                         row_cnt <= '0;
                     end else begin
                         row_cnt <= row_cnt + 1;
@@ -120,42 +148,14 @@ module a_loader #(
                 end else begin
                     col_cnt <= col_cnt + ELEM_PER_BEAT;
                 end
-            end
 
-            if (beat_valid && buf_wr_ready) begin
-                // Write to buffer
-                buf_wr_valid <= 1'b1;
-                buf_wr_sel   <= pp_sel ? 3'd1 : 3'd0;  // A_BUF[pp_sel]
-                buf_wr_bank  <= bank_calc;
-                buf_wr_addr  <= addr_calc;
-                buf_wr_data  <= beat_buffer;
-
-                // Generate mask for boundary elements
-                // Each bit in mask corresponds to one byte
-                buf_wr_mask <= '0;  // default all masked
-                for (int e = 0; e < ELEM_PER_BEAT; e++) begin
-                    if ((col_cnt + e) < tile_cols && row_cnt < tile_rows) begin
-                        for (int b = 0; b < ELEM_BYTES; b++) begin
-                            buf_wr_mask[e*ELEM_BYTES + b] <= 1'b1;
-                        end
-                    end
-                end
-
-                beat_valid <= 1'b0;
-
-                // Check if this was the last beat
-                if (dma_last && !dma_valid) begin
+                if (dma_last) begin
                     load_done <= 1'b1;
                 end
-            end else begin
-                buf_wr_valid <= 1'b0;
             end
 
-            // Calculate next element address based on current counters
-            elem_byte_addr <= base_addr + row_cnt * tile_stride + col_cnt * ELEM_BYTES;
-
-            // Error detection
-            if (row_cnt >= tile_rows && dma_valid) begin
+            // Error: DMA valid when tile is already being written (beat_valid=1 and not last)
+            if (dma_valid && dma_ready && beat_valid && !dma_last) begin
                 load_err <= 1'b1;
             end
         end

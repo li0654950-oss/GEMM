@@ -8,7 +8,7 @@ BUILD_DIR = build
 # Default simulator (override with SIM=verilator|iverilog|vcs|questa)
 SIM ?= iverilog
 
-# Default target (override with TARGET=pe_cell|systolic_core|buffer_bank)
+# Default target (override with TARGET=pe_cell|systolic_core|buffer_bank|a_loader|b_loader|d_storer)
 TARGET ?= pe_cell
 
 # Sources per target
@@ -24,8 +24,20 @@ else ifeq ($(TARGET),buffer_bank)
   RTL_SRC  = $(RTL_DIR)/buffer_bank.sv
   TB_SRC   = $(TB_DIR)/tb_buffer_bank.sv
   TOP      = tb_buffer_bank
+else ifeq ($(TARGET),a_loader)
+  RTL_SRC  = $(RTL_DIR)/buffer_bank.sv $(RTL_DIR)/a_loader.sv
+  TB_SRC   = $(TB_DIR)/tb_a_loader.sv
+  TOP      = tb_a_loader
+else ifeq ($(TARGET),b_loader)
+  RTL_SRC  = $(RTL_DIR)/buffer_bank.sv $(RTL_DIR)/b_loader.sv
+  TB_SRC   = $(TB_DIR)/tb_b_loader.sv
+  TOP      = tb_b_loader
+else ifeq ($(TARGET),d_storer)
+  RTL_SRC  = $(RTL_DIR)/buffer_bank.sv $(RTL_DIR)/d_storer.sv
+  TB_SRC   = $(TB_DIR)/tb_d_storer.sv
+  TOP      = tb_d_storer
 else
-  $(error Unknown TARGET=$(TARGET). Supported: pe_cell, systolic_core, buffer_bank)
+  $(error Unknown TARGET=$(TARGET). Supported: pe_cell, systolic_core, buffer_bank, a_loader, b_loader, d_storer)
 endif
 
 # Target
