@@ -175,7 +175,15 @@
   - `fp_add_c`: FP32 acc + FP16 C 融合或旁路，简化行为级加法
   - `postproc`: 3-stage 流水线（align→add_c→round_sat），valid/ready 反压，sticky 异常计数器
 - **M1 计算核心子系统 + On-chip Buffer 子系统 + Postprocess 子系统 全部完成**
-- 下一步按 `spec/modules.md` 推进 M2 模块（tile_scheduler, postprocess_numeric, top_system_control, dma_axi_access）
+- **全部 7 份 Spec 已完善至 v0.2/v0.3**（含完整端口定义、FSM、寄存器映射）
+  - `postprocess_numeric_spec.md` — v0.3
+  - `onchip_buffer_reorder_spec.md` — v0.2
+  - `dma_axi_access_spec.md` — v0.2
+  - `top_system_control_spec.md` — v0.2
+  - `reliability_monitoring_verifassist_spec.md` — v0.2
+  - `systolic_compute_core_spec.md` — v0.2
+  - `modules.md` — v0.1
+- 下一步按 `spec/modules.md` 推进 M2 模块 RTL（tile_scheduler, dma_rd/dma_wr, axi_*_master, gemm_top）
 
 **必须遵守的约束**:
 1. 所有模块必须使用 `pe_cell` 中验证过的 `fp16_to_fp32` / `fp32_to_fp16` 转换函数（或统一放入 `gemm_pkg.sv` 包中）
