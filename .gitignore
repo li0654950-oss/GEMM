@@ -1,0 +1,18 @@
+# Build artifacts
+tb/build/
+*.vcd
+*.vcd.xz
+
+# Editor
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Verilator generated
+tb/obj_dir/
