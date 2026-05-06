@@ -64,28 +64,73 @@ D = A \times B + C
 
 ---
 
-## 5. 交付物要求
+## 5. 交付物清单与当前状态
 
-### 5.1 代码与验证环境
-- RTL 源码
-- SystemVerilog（SV）验证环境与可复现的仿真脚本
+### 5.1 项目状态总览
 
-### 5.2 设计文档
-至少包含以下内容：
-1. **寄存器与接口说明**
-2. **架构设计说明**（数据流、计算分块、缓存/片上存储结构）
-3. **资源开销分析**（面积、时序、带宽、存储等）
-4. **设计总结与改进方向**
+**RTL 实现**：25 个 SystemVerilog 模块全部编码完成，涵盖控制平面、DMA/AXI 访问、片上缓存、脉动阵列计算核心、后处理、可靠性监控六大子系统。
 
-### 5.3 验证文档
-至少包含以下内容：
-1. **验证计划**
-2. **测试用例设计与结果分析**
-3. **覆盖率分析**（功能覆盖率/代码覆盖率）
+**仿真验证**：
+- 85 项单元测试全部通过（Verilator 5.020）
+- 顶层集成冒烟测试通过（`tb_gemm_top`：AXI4-Lite CSR 配置 → DMA 读 → 脉动阵列计算 → DMA 写 → IRQ 断言，185 cycles 完成单 tile 4×4×4 FP16 GEMM）
+
+### 5.2 快速开始
+
+```bash
+# 编译顶层冒烟测试
+cd tb
+make SIM=verilator TARGET=gemm_top compile
+
+# 运行仿真
+./build/obj_dir/Vtb_gemm_top
+
+# 运行全部单元测试回归
+make SIM=verilator regress
+
+# 生成 VCD 波形（可选，加 --trace 参数）
+./build/obj_dir/Vtb_gemm_top --trace
+```
+
+### 5.3 代码与验证环境
+
+| 交付物 | 路径 | 状态 |
+|--------|------|------|
+| RTL 源码（25 模块） | `rtl/*.sv` | ✅ 完成 |
+| Testbench（12 模块） | `tb/tb_*.sv` | ✅ 完成 |
+| 仿真 Makefile | `tb/Makefile` | ✅ 完成 |
+| 黄金参考模型 | `tools/gemm_ref.py` | 🔄 待创建 |
+| 回归脚本 | `make regress` | 🔄 待完善 |
+
+### 5.4 设计文档
+
+| 文档 | 路径 | 状态 |
+|------|------|------|
+| 架构设计 | `ARCHITECTURE.md` | ✅ 完成 |
+| 模块清单 | `spec/modules.md` | ✅ 完成 |
+| 模块 Spec（7 份） | `spec/*.md` | ✅ 完成 |
+| 实现规格 | `IMPLEMENTATION.md` | ✅ 完成 |
+| 编码规范 | `docs/coding_style.md` | ✅ 完成 |
+| 验证计划 | `docs/verification_plan.md` | ✅ 初稿 |
+| 时钟/复位规范 | `docs/clock_reset.md` | 🔄 待创建 |
+| SDC 约束 | `constraints/timing.sdc` | 🔄 待创建 |
+| DFT Spec | `docs/dft_spec.md` | 🔄 待创建 |
+| Floorplan | `docs/floorplan.md` | 🔄 待创建 |
+| 签核清单 | `docs/signoff_checklist.md` | 🔄 待创建 |
+
+### 5.5 仿真验证结果
+
+| 层级 | 模块数 | 测试数 | 通过 | 仿真器 |
+|------|--------|--------|------|--------|
+| Unit | 11 | 85 | 85 | Verilator 5.020 |
+| Integration | 1 | 1 | 1 | Verilator 5.020 |
+| System | 0 | 0 | 0 | — |
+
+全部 11 个模块单元测试 + 1 项顶层冒烟测试通过，无失败。
 
 ---
 
-## 6. 验收建议（可选）
+## 6. 验收建议
+
 建议在最终验收中提供：
 - 典型矩阵规模下的性能数据（吞吐、时延）
 - 精度一致性检查（与软件参考模型对比）

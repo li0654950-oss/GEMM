@@ -1,5 +1,7 @@
 # Build artifacts
+build/
 tb/build/
+tb/build_cov*/
 *.vcd
 *.vcd.xz
 

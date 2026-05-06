@@ -6,6 +6,7 @@
 |---|---|---|---|
 | v0.1 | 2026-04-30 | Codex | Initial draft for compute core modules (`systolic_core/pe_cell/acc_ctrl/array_io_adapter`). |
 | v0.2 | 2026-05-02 | Digital Design | Complete port lists, FSM, and logic design. Align with RTL implementation. |
+| v0.3 | 2026-05-04 | Digital Design | Update default parameters to P_M=4, P_N=4. Verified with Verilator. |
 
 ## 2. Terms/Abbreviations
 
@@ -72,8 +73,8 @@ buffer ---> array_io_adapter ----------+  +---------- array_io_adapter <--- buff
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `P_M` | int | 2 | 阵列行数（A 向量维度） |
-| `P_N` | int | 2 | 阵列列数（B 向量维度） |
+| `P_M` | int | 4 | 阵列行数（A 向量维度） |
+| `P_N` | int | 4 | 阵列列数（B 向量维度） |
 | `ELEM_W` | int | 16 | FP16 元素位宽 |
 | `ACC_W` | int | 32 | 累加器位宽（FP32 默认） |
 | `K_MAX` | int | 4096 | 最大 K 迭代次数 |

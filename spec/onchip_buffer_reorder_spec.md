@@ -6,6 +6,7 @@
 |---|---|---|---|
 | v0.1 | 2026-04-30 | Codex | Initial draft for on-chip buffer and data-reorder modules. |
 | v0.2 | 2026-05-02 | Digital Design | Complete port lists, address mapping, ping-pong FSM, bank arbitration, reorder logic, and integration with systolic_core/array_io_adapter. |
+| v0.3 | 2026-05-04 | Digital Design | Update default parameters: BUF_BANKS=8, BUF_DEPTH=2048. Verified with Verilator. |
 
 ## 2. Terms/Abbreviations
 
@@ -89,12 +90,12 @@
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `P_M` | int | 2 | 阵列行数 |
-| `P_N` | int | 2 | 阵列列数 |
+| `P_M` | int | 4 | 阵列行数 |
+| `P_N` | int | 4 | 阵列列数 |
 | `ELEM_W` | int | 16 | FP16 元素位宽 |
 | `ACC_W` | int | 32 | 累加器位宽 |
-| `BUF_BANKS` | int | 4 | 每套 buffer 的 bank 数 |
-| `BUF_DEPTH` | int | 512 | 每个 bank 的 entry 数 |
+| `BUF_BANKS` | int | 8 | 每套 buffer 的 bank 数 |
+| `BUF_DEPTH` | int | 2048 | 每个 bank 的 entry 数 |
 | `AXI_DATA_W` | int | 256 | AXI 数据位宽 |
 | `PP_ENABLE` | bit | 1'b1 | 使能 ping-pong |
 

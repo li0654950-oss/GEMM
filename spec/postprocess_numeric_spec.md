@@ -7,6 +7,7 @@
 | v0.1 | 2026-04-30 | Codex | Initial draft for postprocess and numeric modules (`postproc/fp_add_c/fp_round_sat`). |
 | v0.2 | 2026-05-02 | Digital Design | Complete port lists, address mapping, pipeline stages, integration with systolic_core/d_storer. Align with RTL implementation. |
 | v0.3 | 2026-05-02 | Digital Design | Refined datapath width, handshake protocol, exception handling, and verification strategy. |
+| v0.4 | 2026-05-04 | Digital Design | Update default parameters to P_M=4, P_N=4. Verified with Verilator. |
 
 ## 2. Terms/Abbreviations
 
@@ -79,8 +80,8 @@
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `P_M` | int | 2 | 阵列行数 |
-| `P_N` | int | 2 | 阵列列数 |
+| `P_M` | int | 4 | 阵列行数 |
+| `P_N` | int | 4 | 阵列列数 |
 | `ELEM_W` | int | 16 | FP16 输出元素位宽 |
 | `ACC_W` | int | 32 | FP32 累加器位宽 |
 | `LANES` | int | P_M*P_N | 并行处理通道数 |
@@ -94,8 +95,8 @@
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `P_M` | int | 2 | 阵列行数 |
-| `P_N` | int | 2 | 阵列列数 |
+| `P_M` | int | 4 | 阵列行数 |
+| `P_N` | int | 4 | 阵列列数 |
 | `ELEM_W` | int | 16 | 输出 FP16 位宽 |
 | `ACC_W` | int | 32 | 输入 FP32 位宽 |
 | `LANES` | int | P_M*P_N | 并行 lane 数 |

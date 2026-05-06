@@ -6,6 +6,7 @@
 |---|---|---|---|
 | v0.1 | 2026-04-30 | Codex | Initial draft for DMA and AXI access modules (`dma_rd/rd_addr_gen/axi_rd_master/dma_wr/wr_addr_gen/axi_wr_master`). |
 | v0.2 | 2026-05-02 | Digital Design | Complete port lists, FSM, and logic design. Align with RTL implementation. |
+| v0.3 | 2026-05-04 | Digital Design | Align default parameters with RTL (BUF_BANKS=8, BUF_DEPTH=2048, MAX_BURST_LEN=16). Verified with Verilator. |
 
 ## 2. Terms/Abbreviations
 

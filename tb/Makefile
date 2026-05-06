@@ -12,7 +12,27 @@ SIM ?= iverilog
 TARGET ?= pe_cell
 
 # Sources per target
-ifeq ($(TARGET),pe_cell)
+ifeq ($(TARGET),csr_if)
+  RTL_SRC  = $(RTL_DIR)/gemm_pkg.sv $(RTL_DIR)/csr_if.sv
+  TB_SRC   = $(TB_DIR)/tb_csr_if.sv
+  TOP      = tb_csr_if
+else ifeq ($(TARGET),tile_scheduler)
+  RTL_SRC  = $(RTL_DIR)/gemm_pkg.sv $(RTL_DIR)/tile_scheduler.sv
+  TB_SRC   = $(TB_DIR)/tb_tile_scheduler.sv
+  TOP      = tb_tile_scheduler
+else ifeq ($(TARGET),rd_addr_gen)
+  RTL_SRC  = $(RTL_DIR)/gemm_pkg.sv $(RTL_DIR)/rd_addr_gen.sv
+  TB_SRC   = $(TB_DIR)/tb_rd_addr_gen.sv
+  TOP      = tb_rd_addr_gen
+else ifeq ($(TARGET),err_checker)
+  RTL_SRC  = $(RTL_DIR)/gemm_pkg.sv $(RTL_DIR)/err_checker.sv
+  TB_SRC   = $(TB_DIR)/tb_err_checker.sv
+  TOP      = tb_err_checker
+else ifeq ($(TARGET),gemm_top)
+  RTL_SRC  = $(RTL_DIR)/gemm_pkg.sv $(RTL_DIR)/csr_if.sv $(RTL_DIR)/tile_scheduler.sv $(RTL_DIR)/err_checker.sv $(RTL_DIR)/perf_counter.sv $(RTL_DIR)/trace_debug_if.sv $(RTL_DIR)/rd_addr_gen.sv $(RTL_DIR)/wr_addr_gen.sv $(RTL_DIR)/axi_rd_master.sv $(RTL_DIR)/axi_wr_master.sv $(RTL_DIR)/dma_rd.sv $(RTL_DIR)/dma_wr.sv $(RTL_DIR)/buffer_bank.sv $(RTL_DIR)/a_loader.sv $(RTL_DIR)/b_loader.sv $(RTL_DIR)/c_loader.sv $(RTL_DIR)/d_storer.sv $(RTL_DIR)/array_io_adapter.sv $(RTL_DIR)/systolic_core.sv $(RTL_DIR)/postproc.sv $(RTL_DIR)/fp_add_c.sv $(RTL_DIR)/fp_round_sat.sv $(RTL_DIR)/pe_cell.sv $(RTL_DIR)/acc_ctrl.sv $(RTL_DIR)/gemm_top.sv
+  TB_SRC   = $(TB_DIR)/tb_gemm_top.sv
+  TOP      = tb_gemm_top
+else ifeq ($(TARGET),pe_cell)
   RTL_SRC  = $(RTL_DIR)/pe_cell.sv
   TB_SRC   = $(TB_DIR)/tb_pe_cell.sv
   TOP      = tb_pe_cell
@@ -49,7 +69,7 @@ else ifeq ($(TARGET),fp_add_c)
   TB_SRC   = $(TB_DIR)/tb_fp_add_c.sv
   TOP      = tb_fp_add_c
 else
-  $(error Unknown TARGET=$(TARGET). Supported: pe_cell, systolic_core, buffer_bank, a_loader, b_loader, d_storer, postproc, fp_round_sat, fp_add_c)
+  $(error Unknown TARGET=$(TARGET). Supported: pe_cell, systolic_core, buffer_bank, a_loader, b_loader, d_storer, postproc, fp_round_sat, fp_add_c, csr_if, tile_scheduler, rd_addr_gen, err_checker, gemm_top)
 endif
 
 # Target
@@ -80,7 +100,7 @@ else ifeq ($(SIM),verilator)
 # Verilator 5.x requires --timing for event controls and delay statements
 # Uses sim_main.cpp as C++ wrapper
 
-VERILATOR_FLAGS = --timing --trace -Wno-INITIALDLY -Wno-WIDTH -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-UNDRIVEN -Wno-TIMESCALEMOD -Wno-DECLFILENAME -Wno-UNOPTFLAT --cc --exe sim_main.cpp -CFLAGS "-DVM_PREFIX=V$(TOP)" -DSIMULATION --top-module $(TOP)
+VERILATOR_FLAGS = --timing --trace -Wno-INITIALDLY -Wno-WIDTH -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-UNDRIVEN -Wno-TIMESCALEMOD -Wno-DECLFILENAME -Wno-UNOPTFLAT -Wno-CASEINCOMPLETE -Wno-CASEOVERLAP -Wno-PINMISSING --cc --exe sim_main.cpp -CFLAGS "-DVM_PREFIX=V$(TOP)" -DSIMULATION --top-module $(TOP)
 
 compile:
 	@mkdir -p $(BUILD_DIR)/obj_dir
@@ -128,7 +148,7 @@ run: compile
 else
 
 compile:
-	@echo "ERROR: Unknown simulator '$(SIM)'"
+	@echo "ERROR: Unknown simulator '$(SIM)"
 	@echo "Supported: iverilog, verilator, vcs, questa"
 	@exit 1
 
@@ -145,9 +165,8 @@ help:
 	@echo "Usage: make SIM=<simulator> TARGET=<target> [target]"
 	@echo ""
 	@echo "Simulators: iverilog (default), verilator, vcs, questa"
-	@echo "Targets:    pe_cell (default), systolic_core"
-	@echo "Targets:    buffer_bank, a_loader, b_loader, d_storer"
-	@echo "Targets:    postproc, fp_round_sat, fp_add_c"
+	@echo "Targets:    pe_cell (default), systolic_core, buffer_bank, a_loader, b_loader, d_storer"
+	@echo "Targets:    postproc, fp_round_sat, fp_add_c, csr_if, tile_scheduler, rd_addr_gen, err_checker, gemm_top"
 	@echo "Targets:    compile, run, clean"
 	@echo ""
 	@echo "Examples:"
@@ -155,4 +174,5 @@ help:
 	@echo "  make SIM=verilator TARGET=systolic_core run"
 	@echo "  make SIM=verilator TARGET=postproc run"
 	@echo "  make SIM=vcs TARGET=systolic_core run"
+	@echo "  make SIM=iverilog TARGET=csr_if run"
 	@echo "  make clean"

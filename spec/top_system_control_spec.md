@@ -6,6 +6,7 @@
 |---|---|---|---|
 | v0.1 | 2026-04-30 | Codex | Initial draft for top-level and system-control modules (`gemm_top/csr_if/irq_ctrl/tile_scheduler`). |
 | v0.2 | 2026-05-02 | Digital Design | Complete port lists, FSM, CSR map, and logic design. Align with RTL implementation. |
+| v0.3 | 2026-05-04 | Digital Design | Align with actual RTL: fix default parameters, remove unused AXI-Lite ports (awprot/arprot), correct register offsets, update status bits, mark all modules implemented. |
 
 ## 2. Terms/Abbreviations
 
@@ -72,8 +73,8 @@ AXI4-Lite (cfg) --> | csr_if + irq_ctrl         | --> irq_o
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `P_M` | int | 2 | PE 阵列行数 |
-| `P_N` | int | 2 | PE 阵列列数 |
+| `P_M` | int | 4 | PE 阵列行数 |
+| `P_N` | int | 4 | PE 阵列列数 |
 | `ELEM_W` | int | 16 | FP16 元素位宽 |
 | `ACC_W` | int | 32 | 累加器位宽 |
 | `ADDR_W` | int | 64 | 地址位宽 |
@@ -86,17 +87,16 @@ AXI4-Lite (cfg) --> | csr_if + irq_ctrl         | --> irq_o
 | `MAX_BURST_LEN` | int | 16 | 最大 burst beat 数 |
 | `OUTSTANDING_RD` | int | 8 | 最大读 outstanding |
 | `OUTSTANDING_WR` | int | 8 | 最大写 outstanding |
-| `BUF_BANKS` | int | 4 | buffer bank 数 |
-| `BUF_DEPTH` | int | 512 | 每 bank 深度 |
+| `BUF_BANKS` | int | 8 | buffer bank 数 |
+| `BUF_DEPTH` | int | 2048 | 每 bank 深度 |
+| `PERF_CNT_W` | int | 64 | 性能计数器位宽 |
+| `ERR_CODE_W` | int | 16 | 错误码位宽 |
 
 #### 4.1.2 AXI4-Lite Slave Interface (CSR)
 
 | Signal | Direction | Width | Description |
 |---|---|---|---|
-| `s_axil_aclk` | Input | 1 | AXI4-Lite 时钟（与 core 同频或异步） |
-| `s_axil_aresetn` | Input | 1 | AXI4-Lite 复位 |
 | `s_axil_awaddr` | Input | AXIL_ADDR_W | 写地址 |
-| `s_axil_awprot` | Input | 3 | 写保护 |
 | `s_axil_awvalid` | Input | 1 | 写地址有效 |
 | `s_axil_awready` | Output | 1 | 写地址就绪 |
 | `s_axil_wdata` | Input | 32 | 写数据 |
@@ -107,7 +107,6 @@ AXI4-Lite (cfg) --> | csr_if + irq_ctrl         | --> irq_o
 | `s_axil_bvalid` | Output | 1 | 写响应有效 |
 | `s_axil_bready` | Input | 1 | 写响应就绪 |
 | `s_axil_araddr` | Input | AXIL_ADDR_W | 读地址 |
-| `s_axil_arprot` | Input | 3 | 读保护 |
 | `s_axil_arvalid` | Input | 1 | 读地址有效 |
 | `s_axil_arready` | Output | 1 | 读地址就绪 |
 | `s_axil_rdata` | Output | 32 | 读数据 |
@@ -672,19 +671,19 @@ tile_scheduler cnt_start/stop -> perf_counter -> csr_if perf registers
 |---|---|---|---|
 | `CTRL` | 0x000 | RW | bit0 start(W1P), bit1 soft_reset, bit2 irq_en |
 | `STATUS` | 0x004 | RW | bit0 busy(RO), bit1 done(W1C), bit2 err(W1C) |
-| `ERR_CODE` | 0x008 | RO | 错误码 |
-| `IRQ_MASK` | 0x00C | RW | 中断屏蔽 |
-| `IRQ_STATUS` | 0x010 | RO | 中断状态 |
+| `IRQ_MASK` | 0x008 | RW | 中断屏蔽（默认 0xFF） |
+| `IRQ_STATUS` | 0x00C | RO | 中断状态 |
+| `ERR_CODE` | 0x010 | RO | 错误码 |
 | `DIM_M` | 0x020 | RW | M |
 | `DIM_N` | 0x024 | RW | N |
 | `DIM_K` | 0x028 | RW | K |
-| `ADDR_A` | 0x030 | RW | A 基地址（低 32 位） |
+| `ADDR_A_LO` | 0x030 | RW | A 基地址（低 32 位） |
 | `ADDR_A_HI` | 0x034 | RW | A 基地址（高 32 位） |
-| `ADDR_B` | 0x038 | RW | B 基地址（低 32 位） |
+| `ADDR_B_LO` | 0x038 | RW | B 基地址（低 32 位） |
 | `ADDR_B_HI` | 0x03C | RW | B 基地址（高 32 位） |
-| `ADDR_C` | 0x040 | RW | C 基地址（低 32 位） |
+| `ADDR_C_LO` | 0x040 | RW | C 基地址（低 32 位） |
 | `ADDR_C_HI` | 0x044 | RW | C 基地址（高 32 位） |
-| `ADDR_D` | 0x048 | RW | D 基地址（低 32 位） |
+| `ADDR_D_LO` | 0x048 | RW | D 基地址（低 32 位） |
 | `ADDR_D_HI` | 0x04C | RW | D 基地址（高 32 位） |
 | `STRIDE_A` | 0x050 | RW | A stride |
 | `STRIDE_B` | 0x054 | RW | B stride |
@@ -698,15 +697,15 @@ tile_scheduler cnt_start/stop -> perf_counter -> csr_if perf registers
 | `TILE_IDX_M` | 0x074 | RO | 当前 tile m 索引 |
 | `TILE_IDX_N` | 0x078 | RO | 当前 tile n 索引 |
 | `TILE_IDX_K` | 0x07C | RO | 当前 tile k 索引 |
-| `PERF_CYCLE_TOTAL` | 0x080 | RO | 总周期（低 32 位） |
+| `PERF_CYCLE_TOTAL_LO` | 0x080 | RO | 总周期（低 32 位） |
 | `PERF_CYCLE_TOTAL_HI` | 0x084 | RO | 总周期（高 32 位） |
-| `PERF_CYCLE_COMPUTE` | 0x088 | RO | 计算周期（低 32 位） |
+| `PERF_CYCLE_COMPUTE_LO` | 0x088 | RO | 计算周期（低 32 位） |
 | `PERF_CYCLE_COMPUTE_HI` | 0x08C | RO | 计算周期（高 32 位） |
-| `PERF_CYCLE_DMA_WAIT` | 0x090 | RO | DMA 等待周期（低 32 位） |
-| `PERF_CYCLE_DMA_WAIT_HI` | 0x094 | RO | DMA 等待周期（高 32 位） |
-| `PERF_AXI_RD_BYTES` | 0x098 | RO | AXI 读字节（低 32 位） |
+| `PERF_DMA_WAIT_LO` | 0x090 | RO | DMA 等待周期（低 32 位） |
+| `PERF_DMA_WAIT_HI` | 0x094 | RO | DMA 等待周期（高 32 位） |
+| `PERF_AXI_RD_BYTES_LO` | 0x098 | RO | AXI 读字节（低 32 位） |
 | `PERF_AXI_RD_BYTES_HI` | 0x09C | RO | AXI 读字节（高 32 位） |
-| `PERF_AXI_WR_BYTES` | 0x0A0 | RO | AXI 写字节（低 32 位） |
+| `PERF_AXI_WR_BYTES_LO` | 0x0A0 | RO | AXI 写字节（低 32 位） |
 | `PERF_AXI_WR_BYTES_HI` | 0x0A4 | RO | AXI 写字节（高 32 位） |
 | `DEBUG_CTRL` | 0x0B0 | RW | bit0 test_mode, bit1 perf_freeze, bit2 single_step |
 

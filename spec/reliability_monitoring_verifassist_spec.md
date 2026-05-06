@@ -6,6 +6,7 @@
 |---|---|---|---|
 | v0.1 | 2026-04-30 | Codex | Initial draft for reliability/monitoring/verification-assist modules (`err_checker/perf_counter/trace_debug_if`). |
 | v0.2 | 2026-05-02 | Digital Design | Complete port lists, FSM, logic design, and register map. |
+| v0.3 | 2026-05-04 | Digital Design | Verified with Verilator: err_checker 4/4 pass. |
 
 ## 2. Terms/Abbreviations
 

@@ -1,9 +1,8 @@
 # GEMM Accelerator Verification Plan
 
-**Version**: v0.1
-**Date**: 2026-05-02
-**Project**: FP16 Systolic Array GEMM (D = A×B + C)
-**Target**: Verilator (unit/integration), VCS/UVM (system)
+**Version**: v0.2
+**Date**: 2026-05-05
+**Status**: Unit-level complete, proceeding to integration
 
 ---
 
@@ -71,13 +70,16 @@ def gemm_ref(A, B, C):
 | `systolic_core` | `tb/tb_systolic_core.sv` | 2×2 tile compute, mask, reset recovery, mode | ✅ PASS |
 | `array_io_adapter` | (covered in systolic_core TB) | Skew alignment, valid delay | ✅ PASS |
 | `acc_ctrl` | (covered in systolic_core TB) | Accumulator latch, clear/hold broadcast | ✅ PASS |
-| `buffer_bank` | `tb/tb_buffer_bank.sv` | Read/write, bank conflict, ping-pong | 🔲 TODO |
-| `a_loader` / `b_loader` | `tb/tb_loader.sv` | Stride read, burst assembly | 🔲 TODO |
-| `rd_addr_gen` / `wr_addr_gen` | `tb/tb_addr_gen.sv` | Address sequence, boundary clip | 🔲 TODO |
-| `axi_rd_master` / `axi_wr_master` | `tb/tb_axi_master.sv` | AXI4 protocol compliance, backpressure | 🔲 TODO |
-| `csr_if` | `tb/tb_csr_if.sv` | Register R/W, W1P, W1C, err code | 🔲 TODO |
-| `tile_scheduler` | `tb/tb_scheduler.sv` | FSM, tile loop, mask gen, ping-pong switch | 🔲 TODO |
-| `postproc` | `tb/tb_postproc.sv` | FP32→FP16 cast, rounding, saturation | 🔲 TODO |
+| `buffer_bank` | `tb/tb_buffer_bank.sv` | Read/write, bank conflict, ping-pong | ✅ PASS |
+| `a_loader` / `b_loader` | `tb/tb_a_loader.sv`, `tb/tb_b_loader.sv` | Stride read, burst assembly | ✅ PASS |
+| `rd_addr_gen` | `tb/tb_rd_addr_gen.sv` | Address sequence, boundary clip | ✅ PASS |
+| `csr_if` | `tb/tb_csr_if.sv` | Register R/W, W1P, W1C, err code | ✅ PASS |
+| `tile_scheduler` | `tb/tb_tile_scheduler.sv` | FSM, tile loop, mask gen, ping-pong switch | ✅ PASS |
+| `wr_addr_gen` | (unit logic simple, covered in dma_wr TB) | Write address sequence | 🔄 TBD |
+| `axi_rd_master` | (covered in dma_rd TB) | AXI4 read protocol | 🔄 TBD |
+| `axi_wr_master` | (covered in dma_wr TB) | AXI4 write protocol | 🔄 TBD |
+| `dma_rd` / `dma_wr` | `tb/tb_dma_rd.sv`, `tb/tb_dma_wr.sv` | Burst assembly, resp check | 🔄 TBD |
+| `c_loader` | (covered in postproc / integration) | C matrix load | 🔄 TBD |
 
 ### 2.2 Test Categories (applicable to each unit)
 
@@ -208,16 +210,18 @@ Status:    PASS
 
 ## 6. Milestone Plan
 
-| Phase | Deliverable | ETA | Owner |
-|-------|-------------|-----|-------|
-| M1 | Unit TB for pe_cell, systolic_core, adapter, acc_ctrl | ✅ Done | RTL dev |
-| M1 | Unit TB for buffer_bank, loader, addr_gen | Week 1 | Verification |
-| M1 | Unit TB for axi_master, csr_if, scheduler, postproc | Week 2 | Verification |
-| M2 | Integration TB: compute_subsys, DMA subsys | Week 3 | Verification |
-| M2 | Python reference model + scoreboard | Week 3 | Verification |
-| M3 | System TB: gemm_top + AXI memory model | Week 4 | Verification |
-| M3 | Random test generator + coverage closure | Week 5 | Verification |
-| M4 | Regression script + CI hook + sign-off checklist | Week 6 | Lead |
+| Phase | Deliverable | ETA | Status |
+|-------|-------------|-----|--------|
+| M1 | Unit TB for pe_cell, systolic_core, adapter, acc_ctrl | ✅ Done | 4/4 PASS |
+| M1 | Unit TB for buffer_bank, loader, addr_gen, err_checker | ✅ Done | 5/5 PASS |
+| M1 | Unit TB for csr_if, scheduler, postproc | ✅ Done | 4/4 PASS |
+| M2 | Python reference model + scoreboard | ✅ Done | `tools/gemm_ref.py` |
+| M2 | Regression script + unit regression | ✅ Done | `regress.sh` 11/11 PASS |
+| M3 | System smoke TB: gemm_top + AXI memory model | ✅ Done | `tb_gemm_top.sv` PASS |
+| M3 | Integration TB: compute_subsys, DMA subsys | Week 3 | 🔄 Pending |
+| M3 | Random test generator + coverage closure | Week 4 | 🔄 Pending |
+| M4 | Full system regression with reference compare | Week 5 | 🔄 Pending |
+| M4 | SDC constraints + synthesis trial | Week 6 | 🔄 Pending |
 
 ---
 
@@ -253,3 +257,14 @@ gemm-repo/
 
 *Document owner: Verification Lead*
 *Approval: RTL Lead, System Architect*
+
+---
+
+## C. 相关文档索引
+
+| 文档 | 路径 | 说明 |
+|---|---|---|
+| 资源开销分析 | `docs/resource_analysis.md` | 面积/门数/功耗估算 |
+| 设计小结与待改进 | `docs/design_summary.md` | 设计状态、关键决策、改进清单 |
+| 验证 testcase 分析 | `docs/testcase_analysis.md` | 55+ testcase 逐一拆解 |
+| 覆盖率分析报告 | `docs/coverage_report.md` | Verilator 覆盖率数据与提升计划 |

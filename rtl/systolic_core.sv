@@ -242,6 +242,14 @@ module systolic_core #(
             acc_out_last  <= 1'b0;
 
             // Error detection ------------------------------------------------
+            `ifdef SIMULATION
+            if (core_start && core_busy)
+                $display("[CORE] ERR: protocol mismatch at time %0t", $time);
+            if (k_cnt > K_MAX)
+                $display("[CORE] ERR: k_overflow k_cnt=%0d at time %0t", k_cnt, $time);
+            if (core_mode !== 1'b0 && core_mode !== 1'b1)
+                $display("[CORE] ERR: illegal_mode core_mode=%b at time %0t", core_mode, $time);
+            `endif
             if (core_start && core_busy) begin
                 err_protocol <= 1'b1;
                 err_code[1]  <= 1'b1;  // protocol_mismatch
